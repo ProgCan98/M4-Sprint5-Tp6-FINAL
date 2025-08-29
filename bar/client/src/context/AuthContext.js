@@ -1,0 +1,1 @@
+// Contexto para autenticación (JWT)
