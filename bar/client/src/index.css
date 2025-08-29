@@ -1,0 +1,17 @@
+/* Estilos globales de la aplicación */
+/* Configura Tailwind CSS y define clases personalizadas */
+
+@import "tailwindcss";
+
+/* Fondo global oscuro */
+body {
+  background-color: #1a1a1a; /* Oscuro similar a bg-gray-900 */
+  color: #ffffff; /* Texto blanco para contraste */
+}
+
+/* Clase para fondo de hero (opcional, si usas imagen) */
+.hero-bg {
+  background-image: url('./assets/hero1.jpg');
+  background-size: cover;
+  background-position: center;
+}
