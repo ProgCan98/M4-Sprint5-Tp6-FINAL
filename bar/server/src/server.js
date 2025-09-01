@@ -1,1 +1,9 @@
-// Punto de entrada
+// Punto de entrada del backend
+// Inicia el servidor Express
+
+const app = require('./app');
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en puerto ${PORT}`);
+});

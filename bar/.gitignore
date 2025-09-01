@@ -11,6 +11,14 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*.local
+
+# Ignorar archivos de entorno y dependencias
+server/.env
+client/.env
+server/node_modules/
+client/node_modules/
 
 # Editor directories and files
 .vscode/*

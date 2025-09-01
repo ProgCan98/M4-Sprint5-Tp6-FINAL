@@ -1,19 +1,38 @@
 // Componente principal de la aplicación
-// Actúa como layout, incluyendo la barra de navegación y el contenedor de rutas
-// Configura Toastify para notificaciones globales
+// Configura layout con Navbar, Toastify y tema claro/oscuro
+// Envuelve rutas con proveedores de contexto
+
 import { Outlet } from 'react-router-dom';
-import { CartProvider } from './context/CartProvider';
 import Navbar from './components/Navbar';
 import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { ThemeProvider } from './context/ThemeProvider';
+import { AuthProvider } from './context/AuthProvider';
+import { CartProvider } from './context/CartProvider';
 
 function App() {
   return (
-    <CartProvider>
-      <Navbar /> {/* Barra de navegación */}
-      <ToastContainer position="bottom-right" autoClose={3000} />{' '}
-      {/* Cierra notificaciones tras 3 segundos */}
-      <Outlet /> {/* Renderiza rutas hijas definidas en appRouter */}
-    </CartProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <CartProvider>
+          <div className="min-h-screen">
+            <Navbar />
+            <Outlet />
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+            />
+          </div>
+        </CartProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

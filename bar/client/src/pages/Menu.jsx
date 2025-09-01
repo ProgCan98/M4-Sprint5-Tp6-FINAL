@@ -1,142 +1,115 @@
-// Página para mostrar el menú de bebidas
-// Permite filtrar bebidas por categoría o búsqueda, y agregar al carrito
-// Usa useNavigate para limpiar filtros y useSearchParams para manejar query params
+// Página para mostrar el catálogo de cócteles
+// Permite filtrar por categoría, buscar, agregar a watchlist y paginado
+// Restringe cócteles con alcohol para perfiles de niño
 
-import { useState, useEffect } from 'react'; // Hooks para estado y efectos
-import { useSearchParams, Link, useNavigate } from 'react-router-dom'; // Manejo de URL y navegación
-import { getDrinks, getCategories } from '../services/apiBackend'; // APIs para bebidas y categorías
-import { useCart } from '../context/CartContext'; // Acceso al carrito
-import { toast } from 'react-toastify'; // Notificaciones
+import { useState, useEffect } from 'react';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 function Menu() {
-  const [drinks, setDrinks] = useState([]); // Lista de bebidas
-  const [categories, setCategories] = useState([]); // Lista de categorías
-  const [selectedCategory, setSelectedCategory] = useState(() => {
-    return localStorage.getItem('selectedCategory') || ''; // Persiste categoría
-  });
-  const [loading, setLoading] = useState(true); // Estado de carga
-  const { addToCart } = useCart(); // Función para agregar al carrito
-  const [searchParams, setSearchParams] = useSearchParams(); // Parámetros de URL
-  const searchTerm = searchParams.get('search') || ''; // Término de búsqueda
-  const navigate = useNavigate(); // Navegación programática
+  const [cocktails, setCocktails] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const { activeProfile, token } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchTerm = searchParams.get('search') || '';
+  const navigate = useNavigate();
 
-  // Carga categorías al montar el componente
+  // Carga categorías
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const data = await getCategories();
-        console.log('Categorías cargadas en Menu:', data); // Depuración
-        setCategories(data);
-        if (data.length === 0) {
-          toast.warn('No se encontraron categorías');
-        }
+        const response = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/cocktails/categories`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        console.log('Categorías cargadas:', response.data); // Depuración
+        setCategories(response.data);
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error('Error al cargar categorías:', error);
         toast.error('Error al cargar categorías');
       }
     };
     fetchCategories();
-  }, []);
+  }, [token]);
 
-  // Carga bebidas según categoría o búsqueda
+  // Carga cócteles con paginado y filtros
   useEffect(() => {
-    const fetchDrinks = async () => {
+    const fetchCocktails = async () => {
       try {
         setLoading(true);
-        let query = '';
-        if (selectedCategory && !searchTerm) {
-          query = selectedCategory; // Filtra por categoría
-        } else if (searchTerm) {
-          query = searchTerm; // Filtra por búsqueda
-        } else {
-          query = null; // Sin filtro
-        }
-        console.log('Buscando bebidas con query:', query); // Depuración
-        const data = await getDrinks(query);
-        if (!data || !data.length) {
-          console.warn('No se encontraron bebidas para el query:', query);
-          setDrinks([]);
-          toast.warn(`No se encontraron bebidas para "${query || 'todas'}"`);
-          setLoading(false);
-          return;
-        }
-        // Agrega precios aleatorios (simulación)
-        const drinksWithPrices = data.map((drink) => ({
-          ...drink,
-          price: (Math.random() * 15 + 5).toFixed(2),
-        }));
-        setDrinks(drinksWithPrices);
+        const query = {
+          page,
+          limit: 9, // 9 cócteles por página
+          category: selectedCategory || undefined,
+          search: searchTerm || undefined,
+          nonAlcoholic: activeProfile?.role === 'child' ? true : undefined,
+        };
+        console.log('Buscando cócteles:', query); // Depuración
+        const response = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/cocktails`,
+          { params: query, headers: { Authorization: `Bearer ${token}` } }
+        );
+        setCocktails(response.data.cocktails);
+        setTotalPages(response.data.totalPages);
       } catch (error) {
-        console.error('Error fetching drinks:', error);
-        toast.error('Error al cargar bebidas');
-        setDrinks([]);
+        console.error('Error al cargar cócteles:', error);
+        toast.error('Error al cargar cócteles');
       } finally {
         setLoading(false);
       }
     };
-    fetchDrinks();
-    localStorage.setItem('selectedCategory', selectedCategory); // Persiste categoría
-  }, [selectedCategory, searchTerm]);
+    if (token) fetchCocktails();
+  }, [page, selectedCategory, searchTerm, activeProfile, token]);
 
-  // Agrega bebida al carrito
-  const handleAddToCart = (drink) => {
-    addToCart({
-      id: drink.idDrink,
-      name: drink.strDrink,
-      price: parseFloat(drink.price),
-      image: drink.strDrinkThumb,
-    });
-    toast.success(`${drink.strDrink} agregado al carrito`);
-  };
-
-  // Limpia filtros y búsqueda
-  const handleClearSearch = () => {
-    setSearchParams({});
-    setSelectedCategory('');
-    navigate('/menu');
-    localStorage.removeItem('selectedCategory'); // Limpia persistencia
+  // Agrega cóctel a la watchlist
+  const handleAddToWatchlist = async (cocktail) => {
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/profiles/${
+          activeProfile._id
+        }/watchlist`,
+        { cocktailId: cocktail._id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`${cocktail.name} agregado a la watchlist`);
+    } catch (error) {
+      console.error('Error al agregar a watchlist:', error);
+      toast.error('Error al agregar a la watchlist');
+    }
   };
 
   // Maneja cambio de categoría
   const handleCategoryChange = (e) => {
-    const category = e.target.value;
-    console.log('Categoría seleccionada:', category); // Depuración
-    setSelectedCategory(category);
-    if (category) {
-      setSearchParams({}); // Limpia búsqueda si se selecciona categoría
+    setSelectedCategory(e.target.value);
+    setSearchParams({});
+    setPage(1);
+  };
+
+  // Limpia filtros
+  const handleClearSearch = () => {
+    setSearchParams({});
+    setSelectedCategory('');
+    setPage(1);
+  };
+
+  // Cambia de página
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
     }
   };
 
-  // Muestra estado de carga
   if (loading) return <div className="text-center py-10">Cargando...</div>;
-
-  // Muestra mensaje si no hay bebidas
-  if (drinks.length === 0 && !loading) {
-    return (
-      <div className="container mx-auto p-4 text-center">
-        <h1 className="text-2xl font-bold mb-4">Menú de Bebidas</h1>
-        <p className="mb-4">
-          No se encontraron bebidas para "
-          {searchTerm || selectedCategory || 'todas'}".
-        </p>
-        <button
-          onClick={handleClearSearch}
-          className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition"
-        >
-          Limpiar Filtros
-        </button>
-        <br />
-        <Link to="/" className="text-orange-500 hover:underline mt-4 block">
-          Volver a Inicio
-        </Link>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Menú de Bebidas</h1>
-      {/* Filtro por categoría */}
+      <h1 className="text-2xl font-bold mb-4">Menú de Cócteles</h1>
       <div className="mb-4">
         <label className="block text-sm font-medium mb-1">
           Filtrar por Categoría
@@ -144,50 +117,63 @@ function Menu() {
         <select
           value={selectedCategory}
           onChange={handleCategoryChange}
-          className="w-full p-2 bg-gray-900 text-white border border-gray-600 rounded focus:ring-orange-500"
+          className="w-full p-2 bg-gray-900 text-white border border-gray-600 rounded"
         >
           <option value="">Todas</option>
           {categories.map((category) => (
-            <option key={category.strCategory} value={category.strCategory}>
-              {category.strCategory}
+            <option key={category} value={category}>
+              {category}
             </option>
           ))}
         </select>
-        {categories.length === 0 && (
-          <p className="text-red-500 text-sm mt-2">
-            No se cargaron categorías. Intenta recargar la página.
-          </p>
-        )}
       </div>
-      {/* Grid de bebidas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {drinks.map((drink) => (
+        {cocktails.map((cocktail) => (
           <div
-            key={drink.idDrink}
+            key={cocktail._id}
             className="bg-gray-800 p-4 rounded-lg shadow-lg"
           >
             <img
-              src={drink.strDrinkThumb}
-              alt={drink.strDrink}
+              src={cocktail.image}
+              alt={cocktail.name}
               className="w-full h-48 object-cover rounded-md mb-2"
             />
-            <h2 className="text-lg font-semibold mb-1">{drink.strDrink}</h2>
-            <p className="text-sm mb-1">Categoría: {drink.strCategory}</p>
-            <p className="text-sm mb-2">Precio: ${drink.price}</p>
+            <h2 className="text-lg font-semibold mb-1">{cocktail.name}</h2>
+            <p className="text-sm mb-2">Categoría: {cocktail.category}</p>
             <Link
-              to={`/drink/${drink.idDrink}`}
+              to={`/drink/${cocktail._id}`}
               className="block text-center px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition mb-2"
             >
               Ver Detalles
             </Link>
             <button
-              onClick={() => handleAddToCart(drink)}
+              onClick={() => handleAddToWatchlist(cocktail)}
               className="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition"
             >
-              Agregar al Carrito
+              Agregar a Watchlist
             </button>
           </div>
         ))}
+      </div>
+      {/* Controles de paginado */}
+      <div className="flex justify-center mt-4">
+        <button
+          onClick={() => handlePageChange(page - 1)}
+          disabled={page === 1}
+          className="px-4 py-2 bg-gray-700 text-white rounded-md mr-2"
+        >
+          Anterior
+        </button>
+        <span className="px-4 py-2">
+          Página {page} de {totalPages}
+        </span>
+        <button
+          onClick={() => handlePageChange(page + 1)}
+          disabled={page === totalPages}
+          className="px-4 py-2 bg-gray-700 text-white rounded-md ml-2"
+        >
+          Siguiente
+        </button>
       </div>
     </div>
   );
