@@ -12,12 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Ignorar archivos de entorno y dependencias
-server/.env
-client/.env
-server/node_modules/
-client/node_modules/
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
