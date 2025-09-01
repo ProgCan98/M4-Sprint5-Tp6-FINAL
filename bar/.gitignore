@@ -11,8 +11,6 @@ node_modules
 dist
 dist-ssr
 *.local
-.env
-.env.*.local
 
 # Ignorar archivos de entorno y dependencias
 server/.env
@@ -30,3 +28,14 @@ client/node_modules/
 *.njsproj
 *.sln
 *.sw?
+
+# Ignorar archivos de entorno
+server/.env
+client/src/.env
+
+# Ignorar dependencias y archivos generados
+server/node_modules/
+client/node_modules/
+*.log
+dist/
+build/
