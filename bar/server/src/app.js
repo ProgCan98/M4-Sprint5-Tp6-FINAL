@@ -11,12 +11,17 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    credentials: true,
-  })
-);
+// Configurar CORS
+const corsOptions = {
+  origin: [process.env.FRONTEND_URL, 'http://localhost:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+};
+app.use(cors(corsOptions));
+
+// Manejar solicitudes OPTIONS explícitamente
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // Conexión a MongoDB
