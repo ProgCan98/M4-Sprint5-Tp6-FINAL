@@ -21,7 +21,10 @@ export const AuthProvider = ({ children }) => {
         console.error('Invalid token:', error);
         localStorage.removeItem('token');
         setToken(null);
+        delete axios.defaults.headers.common['Authorization'];
       }
+    } else {
+      delete axios.defaults.headers.common['Authorization'];
     }
   }, [token]);
 

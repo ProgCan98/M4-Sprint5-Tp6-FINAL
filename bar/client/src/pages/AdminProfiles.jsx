@@ -6,12 +6,31 @@ import {
   updateProfile,
   deleteProfile,
 } from '../services/profileService';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import { toast } from 'react-toastify';
+
+const schema = yup.object().shape({
+  name: yup.string().required('Nombre requerido').min(2, 'Mínimo 2 caracteres'),
+  role: yup
+    .string()
+    .oneOf(['standard', 'child'], 'Rol inválido')
+    .required('Rol requerido'),
+});
 
 const AdminProfiles = () => {
   const [profiles, setProfiles] = useState([]);
-  const [formData, setFormData] = useState({ name: '', role: 'standard' });
   const [editingId, setEditingId] = useState(null);
   const { user } = useContext(AuthContext);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
 
   useEffect(() => {
     const fetchProfiles = async () => {
@@ -19,6 +38,7 @@ const AdminProfiles = () => {
         const data = await getProfiles();
         setProfiles(data);
       } catch (err) {
+        toast.error('Error al cargar perfiles');
         console.error('Error fetching profiles:', err);
       }
     };
@@ -27,91 +47,118 @@ const AdminProfiles = () => {
     }
   }, [user]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (data) => {
     try {
       if (editingId) {
-        await updateProfile(editingId, formData);
+        await updateProfile(editingId, data);
+        toast.success('Perfil actualizado');
         setEditingId(null);
       } else {
-        await createProfile(formData);
+        await createProfile(data);
+        toast.success('Perfil creado');
       }
-      const data = await getProfiles();
-      setProfiles(data);
-      setFormData({ name: '', role: 'standard' });
+      const dataProfiles = await getProfiles();
+      setProfiles(dataProfiles);
+      reset({ name: '', role: 'standard' });
     } catch (err) {
+      toast.error('Error al guardar perfil');
       console.error('Error saving profile:', err);
     }
   };
 
   const handleEdit = (profile) => {
-    setFormData({ name: profile.name, role: profile.role });
+    reset({ name: profile.name, role: profile.role });
     setEditingId(profile._id);
   };
 
   const handleDelete = async (id) => {
+    const confirmed = window.confirm('¿Estás seguro de eliminar este perfil?');
+    if (!confirmed) return;
     try {
       await deleteProfile(id);
       setProfiles(profiles.filter((p) => p._id !== id));
+      toast.success('Perfil eliminado');
     } catch (err) {
+      toast.error('Error al eliminar perfil');
       console.error('Error deleting profile:', err);
     }
   };
 
   if (user?.role !== 'owner') {
-    return <div className="container mx-auto p-6">Acceso denegado</div>;
+    return (
+      <div className="container mx-auto p-6 dark:text-gray-200">
+        Acceso denegado
+      </div>
+    );
   }
 
   return (
     <div className="container mx-auto p-6">
-      <h2 className="text-3xl font-bold mb-6">Administrar Perfiles</h2>
+      <h2 className="text-3xl font-bold mb-6 dark:text-gray-200">
+        Administrar Perfiles
+      </h2>
       <form
-        onSubmit={handleSubmit}
-        className="mb-8 bg-white p-6 rounded-lg shadow-md"
+        onSubmit={handleSubmit(onSubmit)}
+        className="mb-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md"
       >
         <div className="mb-4">
-          <label className="block text-gray-700 mb-2">Nombre</label>
+          <label className="block text-gray-700 dark:text-gray-300 mb-2">
+            Nombre
+          </label>
           <input
             type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full p-2 border rounded"
-            required
+            {...register('name')}
+            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
           />
+          {errors.name && (
+            <p className="text-red-500 mt-1">{errors.name.message}</p>
+          )}
         </div>
         <div className="mb-4">
-          <label className="block text-gray-700 mb-2">Rol</label>
+          <label className="block text-gray-700 dark:text-gray-300 mb-2">
+            Rol
+          </label>
           <select
-            value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-            className="w-full p-2 border rounded"
+            {...register('role')}
+            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
           >
             <option value="standard">Standard</option>
             <option value="child">Child</option>
           </select>
+          {errors.role && (
+            <p className="text-red-500 mt-1">{errors.role.message}</p>
+          )}
         </div>
         <button
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50"
+          disabled={isSubmitting}
         >
-          {editingId ? 'Actualizar' : 'Crear'} Perfil
+          {isSubmitting ? 'Cargando...' : editingId ? 'Actualizar' : 'Crear'}
         </button>
       </form>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {profiles.map((profile) => (
-          <div key={profile._id} className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-semibold">{profile.name}</h3>
-            <p className="text-gray-600">Rol: {profile.role}</p>
+          <div
+            key={profile._id}
+            className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md"
+          >
+            <h3 className="text-xl font-semibold dark:text-gray-200">
+              {profile.name}
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300">
+              Rol: {profile.role}
+            </p>
             <div className="mt-4 flex gap-2">
               <button
                 onClick={() => handleEdit(profile)}
-                className="text-blue-500 hover:underline"
+                className="text-blue-500 hover:underline dark:text-blue-400"
               >
                 Editar
               </button>
               <button
                 onClick={() => handleDelete(profile._id)}
-                className="text-red-500 hover:underline"
+                className="text-red-500 hover:underline dark:text-red-400"
               >
                 Eliminar
               </button>
