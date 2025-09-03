@@ -25,7 +25,7 @@ dist-ssr
 
 # Ignorar archivos de entorno
 server/.env
-client/src/.env
+client/.env
 
 # Ignorar dependencias y archivos generados
 server/node_modules/

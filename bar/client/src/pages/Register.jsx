@@ -1,9 +1,9 @@
 import { useState, useContext } from 'react';
-import { AuthContext } from '../contexts/AuthContext';
-import { login as loginService } from '../services/authService';
+import { AuthContext } from '../contexts/AuthContext.jsx';
+import { register as registerService } from '../services/authService';
 import { useNavigate } from 'react-router-dom';
 
-const Login = () => {
+const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -13,11 +13,11 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const { token } = await loginService(email, password);
+      const { token } = await registerService(email, password);
       login(token);
       navigate('/profiles');
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al iniciar sesión');
+      setError(err.response?.data?.message || 'Error al registrarse');
     }
   };
 
@@ -27,7 +27,7 @@ const Login = () => {
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded shadow-md w-full max-w-md"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center">Iniciar Sesión</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">Registrarse</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
         <div className="mb-4">
           <label className="block text-gray-700 mb-2">Email</label>
@@ -55,11 +55,11 @@ const Login = () => {
           type="submit"
           className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
         >
-          Iniciar Sesión
+          Registrarse
         </button>
       </form>
     </div>
   );
 };
 
-export default Login;
+export default Register;

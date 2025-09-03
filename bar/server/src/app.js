@@ -1,6 +1,4 @@
-// Configuración principal de Express
-// Conecta a MongoDB, configura middleware y rutas
-
+// app.js - CORREGIDO CON ORDERS
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -13,8 +11,13 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors()); // Permite solicitudes desde frontend
-app.use(express.json()); // Parsea JSON
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true,
+  })
+);
+app.use(express.json());
 
 // Conexión a MongoDB
 mongoose
@@ -31,6 +34,12 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/profiles', require('./routes/profileRoutes'));
 app.use('/api/cocktails', require('./routes/cocktailRoutes'));
+app.use('/api/orders', require('./routes/orderRoutes')); // ← RUTA AÑADIDA
+
+// Ruta de prueba
+app.get('/api/health', (req, res) => {
+  res.json({ message: 'API funcionando correctamente', timestamp: new Date() });
+});
 
 // Middleware de errores
 app.use(errorMiddleware);

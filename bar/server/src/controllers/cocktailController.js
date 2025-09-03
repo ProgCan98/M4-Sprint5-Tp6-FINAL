@@ -1,7 +1,5 @@
-// Controlador para gestionar cócteles
-// Implementa CRUD, filtros, paginado y sincronización con TheCocktailDB
-
-const { syncCocktails } = require('../services/cocktailService'); // Ruta corregida
+// controllers/cocktailController.js - CORREGIDO
+const { syncCocktails } = require('../services/cocktailService');
 const Cocktail = require('../models/Cocktail');
 
 exports.getCocktails = async (req, res, next) => {
@@ -18,7 +16,23 @@ exports.getCocktails = async (req, res, next) => {
       .limit(Number(limit));
     const total = await Cocktail.countDocuments(query);
 
-    res.json({ cocktails, total, page, limit });
+    res.json({ cocktails, total, page: Number(page), limit: Number(limit) });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// NUEVO: Obtener cóctel por ID
+exports.getCocktailById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const cocktail = await Cocktail.findById(id);
+
+    if (!cocktail) {
+      return res.status(404).json({ message: 'Cóctel no encontrado' });
+    }
+
+    res.json(cocktail);
   } catch (error) {
     next(error);
   }

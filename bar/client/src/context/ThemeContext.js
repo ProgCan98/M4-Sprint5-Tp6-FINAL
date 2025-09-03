@@ -1,1 +1,0 @@
-// Contexto para tema claro/oscuro

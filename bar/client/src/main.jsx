@@ -1,15 +1,16 @@
-// Punto de entrada de la aplicación
-// Configura el router y renderiza la aplicación en el DOM
-// Envuelve la app con el proveedor del carrito
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
 import './index.css';
-import { RouterProvider } from 'react-router-dom';
-import appRouter from './router/appRouter.jsx';
+import { AuthProvider } from './contexts/AuthContext.jsx';
+import { BrowserRouter } from 'react-router-dom';
 
-// Renderiza la aplicación
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <RouterProvider router={appRouter} />
-  </StrictMode>
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <AuthProvider>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </AuthProvider>
+  </React.StrictMode>
 );
